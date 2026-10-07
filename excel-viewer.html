@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <!-- Only local scripts and styles; no network access at all (blocks data leaks
+       even if a library were ever compromised). See README, section Security. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>Excel <span>Viewer</span></h1>
+  <span class="badge" id="filename">no file loaded</span>
+  <a class="switch-link" href="index.html">CSV viewer</a>
+  <button id="reloadBtn" title="Load a new file" class="hidden">↩ New file</button>
+  <button id="themeBtn" title="Switch theme">
+    <span class="t-icon" id="themeIcon">☀️</span>
+    <span class="t-label" id="themeLabel">Light</span>
+  </button>
+</header>
+
+<nav class="sheet-tabs hidden" id="sheetTabs" aria-label="Sheets"></nav>
+
+<div class="toolbar hidden" id="toolbar">
+  <input type="text" id="searchInput" placeholder="Search / Filter…">
+  <div class="sep"></div>
+  <button id="hlBtn">🔍 Inconsistencies</button>
+  <button id="resetSortBtn">↺ Reset Sort</button>
+  <button id="csvBtn">Sheet as CSV</button>
+  <button id="exportBtn" class="primary">⬇ Export .xlsx</button>
+  <div class="stats">
+    <span id="rowCount">–</span>
+    <span class="err-count"  id="errCount"></span>
+    <span class="warn-count" id="warnCount"></span>
+    <span class="info-count" id="infoCount"></span>
+  </div>
+</div>
+
+<div class="issues-bar hidden" id="issuesBar"></div>
+
+<div id="dropzone">
+  <div class="icon">📊</div>
+  <p><strong>Drop an Excel file here</strong><br>.xlsx, .xls or .ods, or click to select one</p>
+  <input type="file" id="fileInput" accept=".xlsx,.xls,.ods">
+</div>
+
+<div id="tableWrapper" class="hidden"></div>
+
+<div id="status">Ready – load an Excel file to get started</div>
+
+<script src="app-excel.js"></script>
+</body>
+</html>
