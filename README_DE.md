@@ -7,25 +7,39 @@ Ein schlanker Viewer und Editor für CSV- **und Excel**-Dateien, der vollständi
 
 ---
 
-## Zwei Viewer, ein Look
+[English](README.md) · **Deutsch**
 
-| Seite | Öffnet | Export |
+## Eine Seite, zwei Viewer
+
+`index.html` startet mit zwei Ablagefeldern nebeneinander (auf schmalen Bildschirmen untereinander): links CSV, rechts Excel.
+
+| Viewer | Öffnet | Export |
 |---|---|---|
-| `index.html` | CSV / TSV | CSV |
-| `excel-viewer.html` | `.xlsx`, `.xls`, `.ods` | `.xlsx` (ganze Arbeitsmappe) oder das aktuelle Blatt als CSV |
+| CSV | `.csv`, `.tsv`, `.txt` | CSV |
+| Excel | `.xlsx`, `.xls`, `.ods`, als `.xls` gespeicherte HTML-/XML-Tabellen | `.xlsx` (ganze Arbeitsmappe) oder das aktuelle Blatt als CSV |
 
-Beide teilen sich Stylesheet, Theme-Einstellung und Bedienung und verlinken im Header aufeinander.
+**Beide Felder nehmen jede Datei an.** Welcher Viewer öffnet, entscheidet der Inhalt der Datei. Eine im „falschen“ Feld abgelegte Datei öffnet also trotzdem richtig; die Statusleiste meldet dann *recognised as Excel file* (bzw. CSV):
+
+| Datei beginnt mit | Öffnet im |
+|---|---|
+| `D0 CF 11 E0 A1 B1 1A E1` (altes binäres `.xls`) | Excel-Viewer |
+| `PK` (ZIP: `.xlsx`, `.ods`) | Excel-Viewer |
+| `<` bei Excel-Endung (HTML-/XML-Export namens `.xls`) | Excel-Viewer |
+| sonstigem Text | CSV-Viewer, auch wenn die Datei `.xls` heißt |
+| sonstigen Binärdaten, z. B. PDF oder Bilder | abgelehnt, mit Hinweis |
+
+Neben die Felder gezogene Dateien werden abgefangen, damit der Browser die Seite nicht verlässt, um die Datei selbst anzuzeigen.
 
 ## Funktionen
 
-- **Drag & Drop** oder Dateiauswahl
+- **Drag & Drop** oder Dateiauswahl, aus beiden Feldern
 - **Spalten sortieren** — Klick auf einen Spaltenkopf sortiert auf- oder absteigend
 - **Live-Suche / Filter** über alle Spalten gleichzeitig
 - **Inkonsistenz-Highlighting** (siehe unten)
 - **Zellen direkt bearbeiten** — einfach in eine Zelle klicken
 - **Export** der bearbeiteten Daten
 - **Dark- / Light-Theme** — Schalter im Header, Einstellung wird gespeichert
-- **Neue Datei**-Button — zurück zur Startseite ohne Seite neu laden
+- **Neue Datei**-Button — zurück zur Startseite ohne Seite neu laden; fragt vorher nach, wenn es ungespeicherte Änderungen gibt
 
 Nur im Excel-Viewer:
 
@@ -40,22 +54,22 @@ Nur im Excel-Viewer:
 ## Verwendung
 
 1. Repo herunterladen oder klonen
-2. `index.html` (CSV) oder `excel-viewer.html` (Excel) in einem modernen Browser öffnen
-3. Datei per Drag & Drop auf die Seite ziehen — fertig
+2. `index.html` in einem modernen Browser öffnen
+3. Datei per Drag & Drop auf eines der beiden Felder ziehen — fertig
 
 Kein Build-Schritt, kein npm, kein Backend, keine Internetverbindung nötig.
 
-Meldet der Excel-Viewer *SheetJS is missing*, einmalig `xlsx.full.min.js` nach `vendor/` herunterladen, wie in [vendor/README-vendor.md](vendor/README-vendor.md) beschrieben.
+Meldet das Excel-Feld *SheetJS is missing*, einmalig `xlsx.full.min.js` nach `vendor/` herunterladen, wie in [vendor/README-vendor.md](vendor/README-vendor.md) beschrieben.
 
 ## Dateien
 
 | Datei | Beschreibung |
 |---|---|
-| `index.html` | CSV-Viewer, nur Markup |
-| `app.js` | Logik des CSV-Viewers |
-| `excel-viewer.html` | Excel-Viewer, nur Markup |
-| `app-excel.js` | Logik des Excel-Viewers, inklusive der Prüfregeln |
-| `style.css` | Gemeinsame Styles, CSS-Custom-Properties für Dark- und Light-Theme |
+| `index.html` | Die Seite: Startbildschirm und beide Viewer, nur Markup |
+| `app.js` | Startbildschirm, Dateityp-Erkennung, Theme und gemeinsame Hilfsfunktionen beider Viewer |
+| `viewer-csv.js` | CSV-Viewer |
+| `viewer-excel.js` | Excel-Viewer, inklusive der Prüfregeln |
+| `style.css` | Styles, CSS-Custom-Properties für Dark- und Light-Theme |
 | `vendor/` | Lokale Kopien von PapaParse und SheetJS, Versionen und Prüfsummen in der dortigen README |
 
 Die Ordnerstruktur bitte so belassen.
@@ -103,8 +117,8 @@ Die freie SheetJS-Version schreibt keine Zellformatierung, Füllfarben, Schrifte
 
 Die Viewer sind für Dateien gebaut, denen man nicht blind vertrauen muss, etwa Exporte aus fremden Systemen.
 
-- **Die Daten bleiben im Browser.** Dateien werden lokal gelesen. Keiner der Viewer stellt eine Netzwerkanfrage: Die Bibliotheken liegen als lokale Kopie in `vendor/`, es gibt kein CDN, keine Webfonts, kein Tracking.
-- **Netzwerkzugriff ist abgeschaltet.** Beide Seiten setzen eine Content-Security-Policy, die jede Verbindung (`connect-src 'none'`), externe Bilder und Formular-Versand sperrt und nur Skripte aus dem eigenen Ordner zulässt. Selbst eine kompromittierte Bibliothek könnte die Daten über diese Wege nicht verschicken. Eine CSP kann allerdings nicht verhindern, dass ein Skript die ganze Seite auf eine andere Adresse umleitet; deshalb sind die Bibliotheken fest versioniert, lokal und geprüft (siehe unten).
+- **Die Daten bleiben im Browser.** Dateien werden lokal gelesen. Die Seite stellt keine Netzwerkanfrage: Die Bibliotheken liegen als lokale Kopie in `vendor/`, es gibt kein CDN, keine Webfonts, kein Tracking.
+- **Netzwerkzugriff ist abgeschaltet.** Die Seite setzt eine Content-Security-Policy, die jede Verbindung (`connect-src 'none'`), externe Bilder und Formular-Versand sperrt und nur Skripte aus dem eigenen Ordner zulässt. Selbst eine kompromittierte Bibliothek könnte die Daten über diese Wege nicht verschicken. Eine CSP kann allerdings nicht verhindern, dass ein Skript die ganze Seite auf eine andere Adresse umleitet; deshalb sind die Bibliotheken fest versioniert, lokal und geprüft (siehe unten).
 - **Präparierte Dateien können keinen Code ausführen.** Alles, was aus einer Datei kommt (Überschriften, Zellwerte, Blattnamen, Formeln), wird vor der Anzeige maskiert. Excel-Makros werden nie geladen oder ausgeführt, Links in Zellen werden ignoriert.
 - **Exporte enthalten die Daten, wie sie sind.** Enthält eine fremde Datei Zellen, die mit `=` beginnen, behandelt Excel sie beim Öffnen des Exports als Formel, genau wie beim Original. Die Viewer fügen solche Inhalte weder hinzu noch entfernen sie sie.
 
@@ -119,6 +133,14 @@ Beide Bibliotheken liegen in `vendor/`, der ausgeführte Code ist also Teil des 
 
 Funktioniert in allen modernen Browsern (Chrome, Firefox, Safari, Edge). Internet Explorer wird nicht unterstützt.
 
+## Haftungsausschluss
+
+Dieser Code wurde ganz oder teilweise mithilfe generativer KI (Claude von Anthropic) erstellt. Er wurde mit automatisierten Browser-Tests geprüft, auch mit absichtlich präparierten Dateien, aber nicht unabhängig begutachtet.
+
+Die Software wird ohne jede Gewährleistung bereitgestellt (siehe [LICENSE](LICENSE)). **Die Nutzung erfolgt auf eigene Gefahr.** Vor dem Bearbeiten und Exportieren bitte immer eine Sicherungskopie der Datei anlegen. Die Inkonsistenz-Prüfung arbeitet mit Heuristiken: Sie hilft, Fehler zu finden, kann aber welche übersehen und korrekte Daten markieren. Sie ersetzt keine sorgfältige Prüfung der Buchhaltung.
+
 ## Lizenz
 
-MIT — mach damit, was du willst.
+[MIT](LICENSE): Der Code darf genutzt, kopiert, verändert und weitergegeben werden, auch kommerziell, solange der Copyright-Vermerk und der Lizenztext jeder Kopie beiliegen. Es gibt keine Gewährleistung.
+
+Die Bibliotheken in `vendor/` behalten ihre eigenen Lizenzen: PapaParse steht unter MIT, SheetJS unter Apache-2.0. Ihre Lizenztexte liegen in `vendor/` und müssen mit den Dateien weitergegeben werden.

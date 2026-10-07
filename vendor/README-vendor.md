@@ -9,6 +9,10 @@ the exact code that runs is part of the repository.
 | `papaparse.min.js` | [PapaParse](https://github.com/mholt/PapaParse) — CSV parser | 5.4.1 | MIT | npm package `papaparse@5.4.1` |
 | `xlsx.full.min.js` | [SheetJS Community Edition](https://sheetjs.com/) — Excel reader/writer | 0.20.3 | Apache-2.0 | `https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js` |
 
+Both licenses require that their text travels with the library, so each
+library has its license file next to it: `LICENSE-papaparse.txt` and
+`LICENSE-sheetjs.txt`. Keep them in the repository.
+
 ## PapaParse
 
 Taken from the npm package `papaparse@5.4.1` (published 2023-03-23), whose
@@ -69,35 +73,43 @@ of many unrelated projects, for example
 [civicpulse](https://github.com/datarhan/civicpulse/blob/main/package-lock.json),
 so a tampered package would stand out.
 
-**3. Take the one file you need out of the package.** Only
-`package/dist/xlsx.full.min.js` is needed; everything else in the package
-stays out of the repository.
+**3. Take the two files you need out of the package**: the library
+`package/dist/xlsx.full.min.js` and its license `package/LICENSE`. Everything
+else in the package stays out of the repository.
 
 Linux / macOS:
 
 ```
-tar -xzf xlsx-0.20.3.tgz package/dist/xlsx.full.min.js
+tar -xzf xlsx-0.20.3.tgz package/dist/xlsx.full.min.js package/LICENSE
 mv package/dist/xlsx.full.min.js vendor/
+mv package/LICENSE vendor/LICENSE-sheetjs.txt
 rm -r package xlsx-0.20.3.tgz
 ```
 
 Windows:
 
 ```
-tar -xzf xlsx-0.20.3.tgz package/dist/xlsx.full.min.js
+tar -xzf xlsx-0.20.3.tgz package/dist/xlsx.full.min.js package/LICENSE
 move package\dist\xlsx.full.min.js vendor\
+move package\LICENSE vendor\LICENSE-sheetjs.txt
 rmdir /s /q package
 del xlsx-0.20.3.tgz
 ```
 
-Afterwards this folder contains exactly three files:
+Afterwards this folder contains exactly five files:
 
 ```
 vendor/
 ├── README-vendor.md
+├── LICENSE-papaparse.txt
+├── LICENSE-sheetjs.txt
 ├── papaparse.min.js
 └── xlsx.full.min.js
 ```
+
+If you already took `xlsx.full.min.js` out without the license, run the
+`tar` and `move`/`mv` lines for `package/LICENSE` once more on the verified
+package.
 
 Do not use the `xlsx` package from npm, cdnjs, jsDelivr or unpkg: those stop
 at 0.18.5, which is vulnerable to prototype pollution

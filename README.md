@@ -7,25 +7,39 @@ A lightweight CSV **and Excel** viewer and editor that runs entirely in your bro
 
 ---
 
-## Two viewers, one look
+**English** · [Deutsch](README.de.md)
 
-| Page | Opens | Export |
+## One page, two viewers
+
+`index.html` opens with two drop fields side by side (stacked on narrow screens): CSV on the left, Excel on the right.
+
+| Viewer | Opens | Export |
 |---|---|---|
-| `index.html` | CSV / TSV | CSV |
-| `excel-viewer.html` | `.xlsx`, `.xls`, `.ods` | `.xlsx` (whole workbook) or the current sheet as CSV |
+| CSV | `.csv`, `.tsv`, `.txt` | CSV |
+| Excel | `.xlsx`, `.xls`, `.ods`, HTML/XML tables saved as `.xls` | `.xlsx` (whole workbook) or the current sheet as CSV |
 
-Both share the same stylesheet, theme setting and controls, and link to each other in the header.
+**Both fields take any file.** The viewer is chosen by what the file contains, so a file dropped on the "wrong" field still opens correctly; the status bar then says *recognised as Excel file* (or CSV):
+
+| File starts with | Opens in |
+|---|---|
+| `D0 CF 11 E0 A1 B1 1A E1` (old binary `.xls`) | Excel viewer |
+| `PK` (ZIP: `.xlsx`, `.ods`) | Excel viewer |
+| `<` and has an Excel extension (HTML/XML export named `.xls`) | Excel viewer |
+| other text | CSV viewer, also when it is named `.xls` |
+| other binary data, e.g. PDF or images | rejected with a message |
+
+Files dropped next to the fields are caught, so the browser does not leave the page to show the file itself.
 
 ## Features
 
-- **Drag & drop** or file picker
+- **Drag & drop** or file picker, from either field
 - **Column sorting** — click any header to sort ascending/descending
 - **Live search / filter** across all columns simultaneously
 - **Inconsistency highlighting** (see below)
 - **Inline cell editing** — click any cell to edit it directly
 - **Export** the modified data
 - **Dark / Light theme** — toggle in the header, preference is remembered
-- **New file** button — return to the start screen without reloading the page
+- **New file** button — return to the start screen without reloading the page; asks first if there are unsaved edits
 
 Excel viewer only:
 
@@ -40,22 +54,22 @@ Excel viewer only:
 ## Usage
 
 1. Download or clone the repo
-2. Open `index.html` (CSV) or `excel-viewer.html` (Excel) in any modern browser
-3. Drop your file onto the page — that's it
+2. Open `index.html` in any modern browser
+3. Drop your file onto one of the two fields — that's it
 
 No build step, no npm, no backend, no internet connection needed.
 
-If the Excel viewer says *SheetJS is missing*, download `xlsx.full.min.js` once into `vendor/` as described in [vendor/README-vendor.md](vendor/README-vendor.md).
+If the Excel field says *SheetJS is missing*, download `xlsx.full.min.js` once into `vendor/` as described in [vendor/README-vendor.md](vendor/README-vendor.md).
 
 ## Files
 
 | File | Description |
 |---|---|
-| `index.html` | CSV viewer, markup only |
-| `app.js` | CSV viewer logic |
-| `excel-viewer.html` | Excel viewer, markup only |
-| `app-excel.js` | Excel viewer logic, including the inconsistency rules |
-| `style.css` | Shared styles, CSS custom-property theming (dark + light) |
+| `index.html` | The page: start screen and both viewers, markup only |
+| `app.js` | Start screen, file type detection, theme and helpers shared by both viewers |
+| `viewer-csv.js` | CSV viewer |
+| `viewer-excel.js` | Excel viewer, including the inconsistency rules |
+| `style.css` | Styles, CSS custom-property theming (dark + light) |
 | `vendor/` | Local copies of PapaParse and SheetJS, with versions and checksums in its README |
 
 Keep the folder structure as it is.
@@ -101,8 +115,8 @@ The free SheetJS build does not write cell styles, so fill colours, fonts and bo
 
 The viewers are built for files you may not fully trust, such as exports from other systems.
 
-- **Your data stays in the browser.** Files are read locally. Neither viewer makes a network request: the libraries are local copies in `vendor/`, no CDN, no web fonts, no tracking.
-- **Network access is switched off.** Both pages set a Content-Security-Policy that blocks every connection (`connect-src 'none'`), external images and form posts, and only allows scripts from the viewer's own folder. Even a compromised library could not send your data away through these channels. A CSP cannot stop a script from navigating the whole page to another address, which is why the libraries are pinned, local and checked (see below).
+- **Your data stays in the browser.** Files are read locally. The page makes no network request: the libraries are local copies in `vendor/`, no CDN, no web fonts, no tracking.
+- **Network access is switched off.** The page sets a Content-Security-Policy that blocks every connection (`connect-src 'none'`), external images and form posts, and only allows scripts from the viewer's own folder. Even a compromised library could not send your data away through these channels. A CSP cannot stop a script from navigating the whole page to another address, which is why the libraries are pinned, local and checked (see below).
 - **Crafted files cannot run code.** Everything taken from a file (headers, cell values, sheet names, formulas) is escaped before it is displayed. Excel macros are never loaded or executed; links in cells are ignored.
 - **Exports contain your data as it is.** If a file from someone else contains cells that start with `=`, Excel will treat them as formulas when you open the export, just as it would with the original. The viewers neither add nor remove such content.
 
@@ -117,6 +131,14 @@ Both libraries live in `vendor/`, so the code that runs is part of the repositor
 
 Works in all modern browsers (Chrome, Firefox, Safari, Edge). No Internet Explorer support.
 
+## Disclaimer
+
+This code was written in whole or in part with the help of generative AI (Claude by Anthropic). It was tested with automated browser tests, including deliberately crafted files, but it has not been independently audited.
+
+The software is provided "as is", without warranty of any kind (see [LICENSE](LICENSE)). **Use it at your own risk.** Keep a backup of every file before you edit and export it. The inconsistency checks are heuristics: they help find problems, but they can miss some and flag correct data. They do not replace a proper review of your accounts.
+
 ## License
 
-MIT — do whatever you want with it.
+[MIT](LICENSE): you may use, copy, modify and distribute this code, also commercially, as long as the copyright notice and the license text stay with every copy. There is no warranty.
+
+The libraries in `vendor/` keep their own licenses: PapaParse is MIT, SheetJS is Apache-2.0. Their license texts are in `vendor/` and must be passed on with the files.
