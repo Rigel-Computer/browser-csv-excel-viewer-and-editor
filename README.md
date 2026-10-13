@@ -40,7 +40,7 @@ Files dropped next to the fields are caught, so the browser does not leave the p
 - **Export** the modified data
 - **Dark / Light theme** — toggle in the header, preference is remembered
 - **New file** button — return to the start screen without reloading the page; asks first if there are unsaved edits
-- **Print** — prints only the table as it is on screen (search, filter and sort included) under a short heading with file, sheet and date. Columns wrap to the page width, the header row repeats on every page, numbers and dates are never split, wide tables print in landscape, and highlighted cells keep their shading. Ctrl+P works the same way. When saving as PDF, the browser suggests the file name of the loaded file plus the sheet, e.g. `Bookkeeping 2025 - Closing.pdf`.
+- **Print** — prints only the table as it is on screen (search, filter and sort included) under a short heading with file, sheet and date. Columns wrap to the page width, the header row repeats on every page, numbers and dates are never split, wide tables print in landscape, and highlighted cells keep their shading. Margins leave room for hole punching: 22 mm on both binding edges (left and right in portrait, top and bottom in landscape), so one- and double-sided printouts can be filed alike; set the print dialog's margins to *Default*. Ctrl+P works the same way. When saving as PDF, the browser suggests the file name of the loaded file plus the sheet, e.g. `Bookkeeping 2025 - Closing.pdf`.
 
 Excel viewer only:
 

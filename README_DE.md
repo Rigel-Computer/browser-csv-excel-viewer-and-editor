@@ -40,7 +40,7 @@ Neben die Felder gezogene Dateien werden abgefangen, damit der Browser die Seite
 - **Export** der bearbeiteten Daten
 - **Dark- / Light-Theme** — Schalter im Header, Einstellung wird gespeichert
 - **Neue Datei**-Button — zurück zur Startseite ohne Seite neu laden; fragt vorher nach, wenn es ungespeicherte Änderungen gibt
-- **Drucken** — druckt nur die Tabelle so, wie sie gerade zu sehen ist (mit Suche, Filter und Sortierung), unter einer kurzen Überschrift mit Datei, Blatt und Datum. Die Spalten passen sich der Seitenbreite an, die Kopfzeile wiederholt sich auf jeder Seite, Zahlen und Datumswerte werden nie zerteilt, breite Tabellen kommen im Querformat, markierte Zellen behalten ihre Schattierung. Strg+P funktioniert genauso. Beim Speichern als PDF schlägt der Browser den Namen der geladenen Datei plus Blatt vor, z. B. `Buchführung 2025 - Abschluss.pdf`.
+- **Drucken** — druckt nur die Tabelle so, wie sie gerade zu sehen ist (mit Suche, Filter und Sortierung), unter einer kurzen Überschrift mit Datei, Blatt und Datum. Die Spalten passen sich der Seitenbreite an, die Kopfzeile wiederholt sich auf jeder Seite, Zahlen und Datumswerte werden nie zerteilt, breite Tabellen kommen im Querformat, markierte Zellen behalten ihre Schattierung. Die Ränder lassen Platz zum Lochen: 22 mm an beiden Heftkanten (links und rechts im Hochformat, oben und unten im Querformat), damit sich ein- und beidseitige Ausdrucke gleich abheften lassen; im Druckdialog dafür die Ränder auf *Standard* lassen. Strg+P funktioniert genauso. Beim Speichern als PDF schlägt der Browser den Namen der geladenen Datei plus Blatt vor, z. B. `Buchführung 2025 - Abschluss.pdf`.
 
 Nur im Excel-Viewer:
 

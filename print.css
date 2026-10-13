@@ -6,8 +6,12 @@
  * whatever theme is active on screen.
  */
 
-@page      { margin: 12mm; }
-@page wide { size: landscape; }
+/* Margins leave 1 cm extra for hole punching on both binding edges, so
+   one-sided and double-sided printouts can be filed alike:
+   left and right in portrait, top and bottom in landscape.
+   Order: top right bottom left. */
+@page      { margin: 12mm 22mm 12mm 22mm; }
+@page wide { size: landscape; margin: 22mm 12mm 22mm 12mm; }
 
 /* Wide tables (more than 6 columns, decided by print.js) print in landscape.
    Set on body so the heading and the table share the same page. */
