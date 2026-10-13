@@ -164,9 +164,18 @@ button.primary:hover { opacity: .88; }
 .stats .warn-count { color: var(--warn); }
 .stats .err-count  { color: var(--error); }
 
-/* ── Drop zone ── */
-#dropzone {
-  margin: 48px auto;
+/* ── Drop zones: CSV left, Excel right; stacked when they don't fit ── */
+.dropzones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  max-width: 1072px;
+  margin: 48px auto 0;
+  padding: 0 28px;
+}
+.dropzone {
+  flex: 1 1 380px;
   max-width: 500px;
   border: 2px dashed var(--border);
   border-radius: 16px;
@@ -175,20 +184,28 @@ button.primary:hover { opacity: .88; }
   cursor: pointer;
   transition: border-color .2s, background .2s;
 }
-#dropzone:hover,
-#dropzone.over {
+.dropzone:hover,
+.dropzone.over {
   border-color: var(--accent);
   background: var(--row-hover);
 }
-#dropzone.warning   { border-color: var(--warn); }
-#dropzone.warning p { color: var(--warn); }
-#dropzone .icon  { font-size: 48px; margin-bottom: 16px; }
-#dropzone p      { color: var(--muted); line-height: 1.7; }
-#dropzone strong { color: var(--text); }
+.dropzone:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.dropzone.warning       { border-color: var(--warn); }
+.dropzone.warning .hint { color: var(--warn); }
+.dropzone .icon  { font-size: 48px; margin-bottom: 16px; }
+.dropzone p      { color: var(--muted); line-height: 1.7; }
+.dropzone strong { color: var(--text); }
+
+.dropzones-note {
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 20px 28px 48px;
+}
 #fileInput { display: none; }
 
-/* ── Table wrapper ── */
-#tableWrapper {
+/* ── Table wrapper (height is fitted to the window by app.js) ── */
+.table-wrapper {
   overflow: auto;
   max-height: calc(100vh - 130px);
   padding-bottom: 32px;
@@ -293,15 +310,6 @@ td.ok-val  { color: var(--ok); }
 
 .hidden { display: none !important; }
 
-/* ── Link between the CSV and Excel viewer ── */
-.switch-link {
-  color: var(--muted);
-  font-size: 12px;
-  text-decoration: none;
-  border-bottom: 1px dotted var(--muted);
-}
-.switch-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
-
 /* ════════════════════════════════════════════════════════════════
    Excel viewer additions
    ════════════════════════════════════════════════════════════════ */
@@ -397,5 +405,7 @@ td.rn.total { color: var(--accent); }
   input[type="text"] { width: 100%; }
   .sep   { display: none; }
   .stats { margin-left: 0; flex-wrap: wrap; gap: 4px 14px; }
-  #dropzone { margin: 32px 16px; padding: 48px 20px; }
+  .dropzones      { margin-top: 32px; padding: 0 16px; gap: 16px; }
+  .dropzone       { padding: 48px 20px; }
+  .dropzones-note { margin: 16px 16px 40px; }
 }

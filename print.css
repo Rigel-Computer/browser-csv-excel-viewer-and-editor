@@ -1,0 +1,126 @@
+/* Print layout, loaded with media="print" (see index.html)
+ *
+ * Only the table on screen is printed, under the heading that print.js
+ * writes into #printHeader. Columns wrap to the page width instead of being
+ * cut off, the header row repeats on every page, and the colours are light
+ * whatever theme is active on screen.
+ */
+
+@page      { margin: 12mm; }
+@page wide { size: landscape; }
+
+/* Wide tables (more than 6 columns, decided by print.js) print in landscape.
+   Set on body so the heading and the table share the same page. */
+html.print-wide body { page: wide; }
+
+/* Light print colours in both themes */
+html[data-theme] {
+  --bg:            #fff;
+  --surface:       #fff;
+  --surface2:      #fff;
+  --border:        #999;
+  --text:          #000;
+  --muted:         #555;
+  --accent:        #000;
+  --warn:          #000;
+  --error:         #000;
+  --info:          #000;
+  --row-alt:       transparent;
+  --row-hover:     transparent;
+  --td-empty-bg:   #f4cccc;
+  --td-suspect-bg: #fbe5b6;
+  --td-info-bg:    #d6e4fa;
+}
+
+body {
+  background: #fff;
+  color: #000;
+  font-size: 9pt;
+  min-height: 0;
+}
+
+/* Everything except the heading and the table stays on screen */
+header,
+#start,
+.toolbar,
+.sheet-tabs,
+.issues-bar,
+#status {
+  display: none !important;
+}
+
+/* ── Heading ── */
+.print-header[hidden] { display: block; }
+.print-header {
+  margin: 0 0 4mm;
+}
+.print-header .title {
+  font-size: 11pt;
+  font-weight: 600;
+}
+.print-header .meta {
+  margin-top: 1mm;
+  font-size: 8pt;
+  color: #444;
+}
+
+/* ── Table ── */
+.table-wrapper {
+  max-height: none !important;     /* overrides the height fitted on screen */
+  overflow: visible !important;
+  padding: 0;
+}
+
+table {
+  width: 100% !important;
+  min-width: 0 !important;
+  font-size: 8pt;
+}
+
+thead { position: static; display: table-header-group; }   /* repeats on every page */
+tr    { break-inside: avoid; }
+
+th, td {
+  position: static !important;      /* no sticky header or row-number column */
+  max-width: none !important;
+  white-space: normal !important;   /* wrap long content instead of cutting it, */
+  overflow: visible !important;
+  text-overflow: clip;
+  overflow-wrap: anywhere;          /* text may break inside long words to fit the page */
+  padding: 1.2mm 1.6mm;
+  border: 0.2mm solid #999 !important;
+  color: #000;
+}
+
+th {
+  font-weight: 600;
+  letter-spacing: 0;
+  background: #eee !important;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+th .sort-icon { display: none; }   /* sorting is named in the heading */
+
+/* Numbers and dates are never split across lines: "16.5" over "3" misreads */
+td.num, td.rn { white-space: nowrap !important; overflow-wrap: normal; }
+
+/* Very wide tables (more than 10 columns): smaller type so they fit */
+html.print-xwide table { font-size: 7pt; }
+html.print-xwide th,
+html.print-xwide td    { padding: 0.8mm 1.1mm; }
+
+td.rn, th.rn {
+  width: 1%;                        /* as narrow as its numbers, the rest goes to the data */
+  min-width: 0;
+  color: #555;
+  background: #eee !important;
+}
+
+/* Keep the highlight shading, which browsers drop by default */
+td.empty, td.suspect, td.info {
+  color: #000;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.empty-sheet { padding: 0; color: #000; }

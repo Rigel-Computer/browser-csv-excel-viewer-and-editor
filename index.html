@@ -7,16 +7,17 @@
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'none'; script-src 'self' file:; style-src 'self' file:; img-src 'self' data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CSV Viewer</title>
+  <title>CSV &amp; Excel Viewer</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="print.css" media="print">
   <script src="vendor/papaparse.min.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
 </head>
 <body>
 
 <header>
-  <h1>CSV <span>Viewer</span></h1>
+  <h1>CSV &amp; Excel <span>Viewer</span></h1>
   <span class="badge" id="filename">no file loaded</span>
-  <a class="switch-link" href="excel-viewer.html">Excel viewer</a>
   <button id="reloadBtn" title="Load a new file" class="hidden">↩ New file</button>
   <button id="themeBtn" title="Switch theme">
     <span class="t-icon" id="themeIcon">☀️</span>
@@ -24,29 +25,70 @@
   </button>
 </header>
 
-<div class="toolbar hidden" id="toolbar">
-  <input type="text" id="searchInput" placeholder="Search / Filter…">
-  <div class="sep"></div>
-  <button id="hlBtn">🔍 Inconsistencies</button>
-  <button id="resetSortBtn">↺ Reset Sort</button>
-  <button id="exportBtn" class="primary">⬇ Export CSV</button>
-  <div class="stats">
-    <span id="rowCount">–</span>
-    <span class="warn-count" id="warnCount"></span>
-    <span class="err-count"  id="errCount"></span>
+<!-- ── Start screen: both fields take any file, the content decides ── -->
+<main id="start">
+  <div class="dropzones">
+    <div class="dropzone" data-kind="csv" tabindex="0" role="button" aria-label="Open a CSV file">
+      <div class="icon">📂</div>
+      <p><strong>Drop a CSV file here</strong><br><span class="hint">.csv, .tsv or .txt, or click to select one</span></p>
+    </div>
+    <div class="dropzone" data-kind="excel" tabindex="0" role="button" aria-label="Open an Excel file">
+      <div class="icon">📊</div>
+      <p><strong>Drop an Excel file here</strong><br><span class="hint">.xlsx, .xls or .ods, or click to select one</span></p>
+    </div>
   </div>
-</div>
+  <p class="dropzones-note">Wrong field? Doesn't matter: the viewer is chosen by what the file contains.</p>
+  <input type="file" id="fileInput" accept=".csv,.tsv,.txt,.xlsx,.xls,.ods">
+</main>
 
-<div id="dropzone">
-  <div class="icon">📂</div>
-  <p><strong>Drop a CSV file here</strong><br>or click to select one</p>
-  <input type="file" id="fileInput" accept=".csv,.tsv,.txt">
-</div>
+<!-- ── Heading for printouts, filled by print.js ── -->
+<div id="printHeader" class="print-header" hidden></div>
 
-<div id="tableWrapper" class="hidden"></div>
+<!-- ── CSV viewer ── -->
+<section id="csvView" class="hidden">
+  <div class="toolbar">
+    <input type="text" id="csvSearch" placeholder="Search / Filter…">
+    <div class="sep"></div>
+    <button id="csvHlBtn">🔍 Inconsistencies</button>
+    <button id="csvResetSortBtn">↺ Reset Sort</button>
+    <button id="csvPrintBtn" class="print-btn" title="Print the table as shown">🖨 Print</button>
+    <button id="csvExportBtn" class="primary">⬇ Export CSV</button>
+    <div class="stats">
+      <span id="csvRowCount">–</span>
+      <span class="warn-count" id="csvWarnCount"></span>
+      <span class="err-count"  id="csvErrCount"></span>
+    </div>
+  </div>
+  <div id="csvTable" class="table-wrapper"></div>
+</section>
 
-<div id="status">Ready – load a CSV file to get started</div>
+<!-- ── Excel viewer ── -->
+<section id="xlView" class="hidden">
+  <nav class="sheet-tabs" id="xlTabs" aria-label="Sheets"></nav>
+  <div class="toolbar">
+    <input type="text" id="xlSearch" placeholder="Search / Filter…">
+    <div class="sep"></div>
+    <button id="xlHlBtn">🔍 Inconsistencies</button>
+    <button id="xlResetSortBtn">↺ Reset Sort</button>
+    <button id="xlPrintBtn" class="print-btn" title="Print the table as shown">🖨 Print</button>
+    <button id="xlCsvBtn">Sheet as CSV</button>
+    <button id="xlExportBtn" class="primary">⬇ Export .xlsx</button>
+    <div class="stats">
+      <span id="xlRowCount">–</span>
+      <span class="err-count"  id="xlErrCount"></span>
+      <span class="warn-count" id="xlWarnCount"></span>
+      <span class="info-count" id="xlInfoCount"></span>
+    </div>
+  </div>
+  <div class="issues-bar hidden" id="xlIssues"></div>
+  <div id="xlTable" class="table-wrapper"></div>
+</section>
+
+<div id="status">Ready</div>
 
 <script src="app.js"></script>
+<script src="viewer-csv.js"></script>
+<script src="viewer-excel.js"></script>
+<script src="print.js"></script>
 </body>
 </html>

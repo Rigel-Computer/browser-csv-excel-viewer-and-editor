@@ -1,23 +1,62 @@
-/* CSV viewer
+/* CSV + Excel viewer: start screen and shared parts
+ *
+ * The start screen shows two drop fields, CSV on the left and Excel on the
+ * right. Both accept any file: the viewer is chosen from the file's first
+ * bytes and its extension, so a file dropped on the "wrong" field still
+ * opens in the right viewer. The two viewers live in viewer-csv.js and
+ * viewer-excel.js.
  *
  * Security notes
- * - Everything taken from the file (headers and values) is HTML-escaped
- *   before it goes into innerHTML, so a crafted CSV cannot inject markup
- *   or scripts.
- * - No inline event handlers: all events are bound here, which lets the
- *   page run under a strict Content-Security-Policy (see index.html).
- * - The file is read locally; this script makes no network requests.
+ * - Everything taken from a file is HTML-escaped (esc) or set via
+ *   textContent, so a crafted file cannot inject markup or scripts.
+ * - No inline event handlers, so the page runs under the strict
+ *   Content-Security-Policy set in index.html.
+ * - Files are read locally; none of the scripts makes a network request.
  */
 'use strict';
 
-/* ── State ── */
-let allData      = [];
-let headers      = [];
-let filteredRows = [];
-let sortCol      = -1;
-let sortDir      = 1;
-let highlightOn  = true;
-let currentFile  = '';
+let active = null;          // viewer currently shown (CsvViewer / ExcelViewer)
+
+/* ── Helpers shared by both viewers ────────────────────────────── */
+function $(id)    { return document.getElementById(id); }
+function show(id) { $(id).classList.remove('hidden'); }
+function hide(id) { $(id).classList.add('hidden'); }
+function setStatus(msg) {
+  $('status').textContent = msg;
+  if (active) active.fit();   // a longer message can wrap and make the status bar taller
+}
+
+/* Escape text for use inside HTML elements and quoted attributes */
+function esc(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function setFileBadge(name, edited) {
+  $('filename').textContent = name ? name + (edited ? ' (edited)' : '') : 'no file loaded';
+}
+
+/* Let a table fill the window down to the status bar */
+function fitTable(wrapper) {
+  const top    = wrapper.getBoundingClientRect().top;
+  const status = $('status').offsetHeight;
+  wrapper.style.maxHeight = Math.max(200, window.innerHeight - top - status) + 'px';
+}
+
+/* Hand a file to the browser's download */
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = Object.assign(document.createElement('a'), { href: url, download: filename });
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Switch from the start screen to a viewer section */
+function showView(id) {
+  hide('start');
+  show(id);
+  show('reloadBtn');
+}
 
 /* ── Theme ─────────────────────────────────────────────────────── */
 const htmlEl = document.documentElement;
@@ -34,230 +73,146 @@ function setTheme(t, save = true) {
   if (save) { try { localStorage.setItem('csvviewer-theme', t); } catch {} }
 }
 
-function toggleTheme() {
+$('themeBtn').addEventListener('click', () => {
   setTheme(htmlEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+});
+
+/* ── File type detection ───────────────────────────────────────── */
+const SIG_OLE2 = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];   // .xls (old binary Office format)
+const SIG_ZIP  = [0x50, 0x4B];                                       // "PK": .xlsx and .ods are ZIP files
+const SIG_PDF  = [0x25, 0x50, 0x44, 0x46];                           // "%PDF"
+
+/* Returns 'csv', 'excel', or null for files neither viewer can open.
+ * Content wins over the extension, so a renamed file still opens correctly. */
+async function detectKind(file) {
+  const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+  const ext  = (/\.([^.]+)$/.exec(file.name) || ['', ''])[1].toLowerCase();
+  const startsWith = sig => sig.every((byte, i) => head[i] === byte);
+
+  if (startsWith(SIG_OLE2) || startsWith(SIG_ZIP)) return 'excel';
+  if (startsWith(SIG_PDF) || head.includes(0))     return null;      // binary, but no spreadsheet
+
+  // Plain text from here on
+  if (['xls', 'xlsx', 'ods'].includes(ext)) {
+    // Many programs export HTML or XML tables as ".xls"; SheetJS reads those.
+    // Anything else with an Excel extension is a CSV that was saved as .xls.
+    const text = new TextDecoder().decode(head).replace(/^﻿/, '').trimStart();
+    return text.startsWith('<') ? 'excel' : 'csv';
+  }
+  return 'csv';
 }
 
-/* ── Buttons ───────────────────────────────────────────────────── */
-$('themeBtn').addEventListener('click', toggleTheme);
-$('reloadBtn').addEventListener('click', resetAll);
-$('hlBtn').addEventListener('click', toggleHighlight);
-$('resetSortBtn').addEventListener('click', resetSort);
-$('exportBtn').addEventListener('click', exportCSV);
+/* ── Start screen ──────────────────────────────────────────────── */
+const READY_TEXT = 'Ready – drop a CSV or Excel file to get started';
+const fileInput  = $('fileInput');
+let pickedFrom   = null;    // field that opened the file dialog
 
-/* ── Drag & Drop / File input ───────────────────────────────────── */
-const dz = $('dropzone');
-dz.addEventListener('click', () => $('fileInput').click());
-dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('over'); });
-dz.addEventListener('dragleave', ()  => dz.classList.remove('over'));
-dz.addEventListener('drop', e => {
+document.querySelectorAll('.dropzone').forEach(zone => {
+  const field = zone.dataset.kind;
+  const pick  = () => { pickedFrom = field; fileInput.click(); };
+
+  zone.addEventListener('click', pick);
+  zone.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); }
+  });
+  zone.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    zone.classList.add('over');
+  });
+  zone.addEventListener('dragleave', e => {
+    if (!zone.contains(e.relatedTarget)) zone.classList.remove('over');
+  });
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('over');
+    openFile(e.dataTransfer.files[0], field);
+  });
+});
+
+fileInput.addEventListener('change', () => {
+  openFile(fileInput.files[0], pickedFrom);
+  fileInput.value = '';
+});
+
+// A drop next to the fields would make the browser open the file itself and
+// leave the page (losing any edits). Catch it and show a "not allowed" cursor.
+document.addEventListener('dragover', e => {
   e.preventDefault();
-  dz.classList.remove('over');
-  handleFile(e.dataTransfer.files[0]);
+  if (!(e.target instanceof Element && e.target.closest('.dropzone'))) e.dataTransfer.dropEffect = 'none';
 });
-$('fileInput').addEventListener('change', e => handleFile(e.target.files[0]));
+document.addEventListener('drop', e => e.preventDefault());
 
-if (typeof Papa === 'undefined') {
-  dz.querySelector('p').textContent = 'PapaParse is missing. Put papaparse.min.js into the vendor folder (see vendor/README-vendor.md).';
-}
-
-function handleFile(file) {
+async function openFile(file, field) {
   if (!file) return;
-  currentFile = file.name;
-  $('filename').textContent = file.name;
+  if (file.size === 0) { setStatus(`"${file.name}" is empty.`); return; }
+
+  let kind;
+  try {
+    kind = await detectKind(file);
+  } catch (err) {
+    setStatus(`Could not read "${file.name}": ${err.message}`);
+    return;
+  }
+  if (!kind) {
+    setStatus(`"${file.name}" is neither a CSV nor an Excel file.`);
+    return;
+  }
+
+  const viewer = kind === 'excel' ? ExcelViewer : CsvViewer;
+  if (!viewer.ready()) { setStatus(viewer.missingText()); return; }
+
   setStatus('Loading ' + file.name + ' …');
-
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete(res) {
-      headers      = res.meta.fields || [];
-      allData      = res.data;
-      filteredRows = [...allData];
-
-      show('toolbar');
-      show('tableWrapper');
-      show('reloadBtn');
-      hide('dropzone');
-
-      renderTable();
-      setStatus('Loaded: ' + allData.length + ' rows, ' + headers.length + ' columns');
-    },
-    error(err) { setStatus('Error: ' + err.message); }
-  });
-}
-
-/* ── Search / Filter ────────────────────────────────────────────── */
-$('searchInput').addEventListener('input', function () {
-  const q = this.value.toLowerCase();
-  filteredRows = q
-    ? allData.filter(row => headers.some(h => String(row[h] ?? '').toLowerCase().includes(q)))
-    : [...allData];
-  if (sortCol >= 0) sortBy(sortCol, false);
-  else renderTable();
-});
-
-/* ── Highlight toggle ───────────────────────────────────────────── */
-function toggleHighlight() {
-  highlightOn = !highlightOn;
-  $('hlBtn').textContent = highlightOn ? '🔍 Inconsistencies' : '○ Inconsistencies';
-  renderTable();
-}
-
-/* ── Sort ───────────────────────────────────────────────────────── */
-function resetSort() {
-  sortCol = -1; sortDir = 1;
-  const q = $('searchInput').value.toLowerCase();
-  filteredRows = q
-    ? allData.filter(row => headers.some(h => String(row[h] ?? '').toLowerCase().includes(q)))
-    : [...allData];
-  renderTable();
-}
-
-function sortBy(colIdx, toggle = true) {
-  if (toggle) {
-    sortDir = (sortCol === colIdx) ? sortDir * -1 : 1;
-    sortCol = colIdx;
-  }
-  const h = headers[colIdx];
-  filteredRows.sort((a, b) => {
-    const an = parseFloat(a[h]), bn = parseFloat(b[h]);
-    return (!isNaN(an) && !isNaN(bn))
-      ? (an - bn) * sortDir
-      : String(a[h] ?? '').localeCompare(String(b[h] ?? '')) * sortDir;
-  });
-  renderTable();
-}
-
-/* ── Inconsistency classifier ───────────────────────────────────── */
-function classify(val, header, colVals) {
-  if (val === '' || val === null || val === undefined) return 'empty';
-  const s = String(val).trim();
-  if (!s || s === '-' || s.toLowerCase() === 'null' || s.toLowerCase() === 'n/a') return 'empty';
-
-  // Numeric column heuristic (>70 % of non-empty values are numbers)
-  const nonEmpty     = colVals.filter(v => v !== '');
-  const numericCount = nonEmpty.filter(v => !isNaN(parseFloat(v))).length;
-  if (nonEmpty.length > 0 && numericCount / nonEmpty.length > 0.7 && isNaN(parseFloat(s)))
-    return 'suspect';
-
-  const lh = header.toLowerCase();
-
-  // Negative value in an amount-like column
-  const isAmount = ['amount','total','price','sum','revenue','cost'].some(k => lh.includes(k));
-  if (isAmount && parseFloat(s) < 0) return 'suspect';
-
-  // Invalid date in a date-like column
-  const isDate = ['date','time','created','updated'].some(k => lh.includes(k));
-  if (isDate && isNaN(Date.parse(s))) return 'suspect';
-
-  return '';
-}
-
-/* ── Render table ───────────────────────────────────────────────── */
-function renderTable() {
-  const wrapper = $('tableWrapper');
-
-  // Pre-collect column values for the classifier
-  const colVals = {};
-  headers.forEach(h => { colVals[h] = filteredRows.map(r => String(r[h] ?? '')); });
-
-  let warns = 0, errs = 0;
-  let out = '<table><thead><tr><th class="rn">#</th>';
-
-  headers.forEach((h, i) => {
-    const sorted = sortCol === i;
-    const icon   = sorted ? (sortDir === 1 ? '▲' : '▼') : '⇅';
-    out += `<th class="${sorted ? 'sorted' : ''}" data-c="${i}">${esc(h)}<span class="sort-icon">${icon}</span></th>`;
-  });
-  out += '</tr></thead><tbody>';
-
-  filteredRows.forEach((row, ri) => {
-    out += `<tr><td class="rn">${ri + 1}</td>`;
-    headers.forEach((h, c) => {
-      const val = row[h] ?? '';
-      let cls   = '';
-      if (highlightOn) {
-        cls = classify(val, h, colVals[h]);
-        if (cls === 'empty')   errs++;
-        if (cls === 'suspect') warns++;
-      }
-      out += `<td class="${cls}" contenteditable="true" data-row="${ri}" data-c="${c}">${esc(val)}</td>`;
-    });
-    out += '</tr>';
-  });
-
-  out += '</tbody></table>';
-  wrapper.innerHTML = out;
-
-  $('rowCount').textContent  = filteredRows.length + ' rows';
-  $('warnCount').textContent = (highlightOn && warns) ? `⚠ ${warns} suspect`   : '';
-  $('errCount').textContent  = (highlightOn && errs)  ? `✗ ${errs} empty/null` : '';
-}
-
-/* Header clicks sort, leaving a cell saves it */
-$('tableWrapper').addEventListener('click', e => {
-  const th = e.target.closest('th[data-c]');
-  if (th) sortBy(+th.dataset.c);
-});
-$('tableWrapper').addEventListener('focusout', e => {
-  const td = e.target.closest('td[data-c]');
-  if (td) cellEdit(td);
-});
-
-/* ── Inline cell edit ───────────────────────────────────────────── */
-function cellEdit(td) {
-  const row = filteredRows[+td.dataset.row];
-  const h   = headers[+td.dataset.c];
-  const val = td.innerText.trim();
-
-  row[h] = val;   // rows are shared objects, so this also updates allData
-
-  if (highlightOn) {
-    const colVals = filteredRows.map(r => String(r[h] ?? ''));
-    td.className  = classify(val, h, colVals) || '';
+  try {
+    const summary = await viewer.open(file);
+    active = viewer;           // set before setStatus, which refits the table
+    setFileBadge(file.name, false);
+    const note = field && field !== kind ? ` (recognised as ${kind === 'excel' ? 'Excel' : 'CSV'} file)` : '';
+    setStatus(summary + note);
+  } catch (err) {
+    setStatus(`Could not read "${file.name}": ${err.message}`);
   }
 }
 
-/* ── Export ─────────────────────────────────────────────────────── */
-function exportCSV() {
-  const csv  = Papa.unparse({ fields: headers, data: allData });
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement('a'), {
-    href:     url,
-    download: currentFile ? 'edited_' + currentFile : 'export.csv'
-  });
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/* ── Reset to start screen ──────────────────────────────────────── */
-function resetAll() {
-  allData = []; headers = []; filteredRows = [];
-  sortCol = -1; sortDir = 1; highlightOn = true; currentFile = '';
-
-  $('filename').textContent    = 'no file loaded';
-  $('searchInput').value       = '';
-  $('hlBtn').textContent       = '🔍 Inconsistencies';
-  $('tableWrapper').innerHTML  = '';
-  $('fileInput').value         = '';
-
-  hide('tableWrapper');
-  hide('toolbar');
+/* ── New file / leaving the page ───────────────────────────────── */
+$('reloadBtn').addEventListener('click', () => {
+  if (active && active.isDirty() && !confirm('You have unsaved edits. Discard them?')) return;
+  if (active) active.reset();
+  active = null;
   hide('reloadBtn');
-  show('dropzone');
-  setStatus('Ready – load a CSV file to get started');
+  show('start');
+  setFileBadge('', false);
+  setStatus(READY_TEXT);
+});
+
+window.addEventListener('beforeunload', e => {
+  if (active && active.isDirty()) { e.preventDefault(); e.returnValue = ''; }
+});
+
+window.addEventListener('resize', () => { if (active) active.fit(); });
+
+/* ── Library checks, shown in the matching field ───────────────── */
+function versionBelow(v, min) {
+  const a = String(v).split('.').map(Number), b = min.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((a[i] || 0) !== b[i]) return (a[i] || 0) < b[i];
+  return false;
 }
 
-/* ── Helpers ────────────────────────────────────────────────────── */
-function $(id)    { return document.getElementById(id); }
-function show(id) { $(id).classList.remove('hidden'); }
-function hide(id) { $(id).classList.add('hidden'); }
-function setStatus(msg) { $('status').textContent = msg; }
-
-/* Escape text for use inside HTML elements and quoted attributes */
-function esc(s) {
-  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+function warnInField(kind, text) {
+  const zone = document.querySelector(`.dropzone[data-kind="${kind}"]`);
+  zone.querySelector('.hint').textContent = text;
+  zone.classList.add('warning');
 }
+
+// app.js loads first (the viewers use its helpers), so wait until all scripts are in
+document.addEventListener('DOMContentLoaded', () => {
+  if (!CsvViewer.ready()) warnInField('csv', CsvViewer.missingText());
+  if (!ExcelViewer.ready()) {
+    warnInField('excel', ExcelViewer.missingText());
+  } else if (versionBelow(XLSX.version, '0.20.2')) {
+    // 0.18.5 from npm/cdnjs still circulates and has known security issues
+    warnInField('excel', `SheetJS ${XLSX.version} has known security issues with crafted files. ` +
+                         'Replace vendor/xlsx.full.min.js with 0.20.3 (see vendor/README-vendor.md).');
+  }
+  setStatus(READY_TEXT);
+});

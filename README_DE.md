@@ -40,6 +40,7 @@ Neben die Felder gezogene Dateien werden abgefangen, damit der Browser die Seite
 - **Export** der bearbeiteten Daten
 - **Dark- / Light-Theme** — Schalter im Header, Einstellung wird gespeichert
 - **Neue Datei**-Button — zurück zur Startseite ohne Seite neu laden; fragt vorher nach, wenn es ungespeicherte Änderungen gibt
+- **Drucken** — druckt nur die Tabelle so, wie sie gerade zu sehen ist (mit Suche, Filter und Sortierung), unter einer kurzen Überschrift mit Datei, Blatt und Datum. Die Spalten passen sich der Seitenbreite an, die Kopfzeile wiederholt sich auf jeder Seite, Zahlen und Datumswerte werden nie zerteilt, breite Tabellen kommen im Querformat, markierte Zellen behalten ihre Schattierung. Strg+P funktioniert genauso. Beim Speichern als PDF schlägt der Browser den Namen der geladenen Datei plus Blatt vor, z. B. `Buchführung 2025 - Abschluss.pdf`.
 
 Nur im Excel-Viewer:
 
@@ -70,6 +71,8 @@ Meldet das Excel-Feld *SheetJS is missing*, einmalig `xlsx.full.min.js` nach `ve
 | `viewer-csv.js` | CSV-Viewer |
 | `viewer-excel.js` | Excel-Viewer, inklusive der Prüfregeln |
 | `style.css` | Styles, CSS-Custom-Properties für Dark- und Light-Theme |
+| `print.css` | Drucklayout: nur die Tabelle, helle Farben, Spalten in Seitenbreite |
+| `print.js` | Druck-Buttons und die Überschrift auf dem Ausdruck |
 | `vendor/` | Lokale Kopien von PapaParse und SheetJS, Versionen und Prüfsummen in der dortigen README |
 
 Die Ordnerstruktur bitte so belassen.
